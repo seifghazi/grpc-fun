@@ -1,0 +1,14 @@
+syntax = "proto3";
+package proto;
+
+message Message {
+  string id = 1;
+  string message = 2;
+}
+
+service SendMessage {
+  rpc SayHello(Message) returns (Message) {}
+  rpc ServerStreamHello(Message) returns (stream Message) {}
+  rpc ClientStreamHello(stream Message) returns (Message) {}
+  rpc BiDricetionalStreamHello(stream Message) returns (stream Message) {}
+}
