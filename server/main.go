@@ -17,21 +17,21 @@ type Server struct {
 }
 
 type Connection struct {
-	id     string
+	Name   string
 	stream proto.SendMessage_ServerStreamHelloServer
 	error  chan error
 }
 
 // SayHello generates response to a Message request
 func (s *Server) SayHello(ctx context.Context, m *proto.Message) (*proto.Message, error) {
-	log.Printf("Receive message %s", m.Message)
-	id := uuid.New().String()
-	return &proto.Message{Id: id, Message: "bar"}, nil
+	fmt.Printf("Received message from %s: %s", m.Name, m.Message)
+	Name := uuid.New().String()
+	return &proto.Message{Name: Name, Message: "bar"}, nil
 }
 
 func (s *Server) ServerStreamHello(msg *proto.Message, stream proto.SendMessage_ServerStreamHelloServer) error {
 	conn := Connection{
-		id:     msg.Id,
+		Name:   msg.Name,
 		stream: stream,
 		error:  make(chan error),
 	}
@@ -40,8 +40,8 @@ func (s *Server) ServerStreamHello(msg *proto.Message, stream proto.SendMessage_
 
 	for i := 0; i < 10; i++ {
 		err := stream.Send(&proto.Message{
-			Id:      uuid.New().String(),
-			Message: fmt.Sprintf("Hellooo client: %s", msg.Id),
+			Name:    uuid.New().String(),
+			Message: fmt.Sprintf("Hellooo client: %s", msg.Name),
 		})
 
 		if err != nil {
@@ -58,7 +58,7 @@ func (s *Server) ClientStreamHello(clientStream proto.SendMessage_ClientStreamHe
 
 		if err == io.EOF {
 			return clientStream.SendAndClose(&proto.Message{
-				Id:      uuid.New().String(),
+				Name:    uuid.New().String(),
 				Message: "Buh Bye m8",
 			})
 		}
@@ -76,7 +76,7 @@ func (s *Server) BiDricetionalStreamHello(stream proto.SendMessage_BiDricetional
 		}
 
 		stream.Send(&proto.Message{
-			Id:      uuid.New().String(),
+			Name:    uuid.New().String(),
 			Message: fmt.Sprintf("Got your message: %s", msg.Message),
 		})
 	}
