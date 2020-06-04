@@ -23,22 +23,25 @@ func ReadAndSendInput(user User, client proto.SendMessageClient) {
 			Name:    user.Name,
 			Message: scanner.Text(),
 		}
-		resp, _ := client.SayHello(context.Background(), msg)
-		log.Printf("Response from server: %s", resp)
+		if _, err := client.SayHello(context.Background(), msg); err != nil {
+			log.Fatalf("Error sending message: %s", err.Error())
+		}
+	}
+}
+
+func ReceiveMessage(stream proto.SendMessage_EstablishConnectionClient) {
+	for {
+		msg, err := stream.Recv()
+		if err != nil {
+			log.Fatalf("Error receiving message from client stream: %s", err.Error())
+		}
+
+		fmt.Printf("Message from %s: %s\n", msg.Name, msg.Message)
 	}
 }
 
 func main() {
-	user := User{}
-	scanner := bufio.NewScanner(os.Stdin)
-
-	fmt.Printf("Please enter your name: ")
-	for scanner.Scan() {
-		name := scanner.Text()
-		user.Name = name
-		break
-	}
-
+	fmt.Println("Attempting to connect to grpc server...")
 	conn, err := grpc.Dial(":8000", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("Error connecting: %s", err)
@@ -47,10 +50,24 @@ func main() {
 
 	client := proto.NewSendMessageClient(conn)
 
-	if err != nil {
-		log.Fatalf("Error when calling SayHello: %s", err)
+	fmt.Println("Successfully connected!")
+	fmt.Printf("Please enter your name: ")
+	user := User{}
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		name := scanner.Text()
+		user.Name = name
+		break
 	}
 
+	serverStream, err := client.EstablishConnection(context.Background(), &proto.Message{
+		Name: user.Name,
+	})
+	if err != nil {
+		log.Fatalf("Error establishing stream connection: %s", err.Error())
+	}
+
+	go ReceiveMessage(serverStream)
 	go ReadAndSendInput(user, client)
 
 	done := make(chan bool)

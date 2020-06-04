@@ -8,6 +8,7 @@ message Message {
 
 service SendMessage {
   rpc SayHello(Message) returns (Message) {}
+  rpc EstablishConnection(Message) returns (stream Message) {}
   rpc ServerStreamHello(Message) returns (stream Message) {}
   rpc ClientStreamHello(stream Message) returns (Message) {}
   rpc BiDricetionalStreamHello(stream Message) returns (stream Message) {}

@@ -13,39 +13,49 @@ import (
 )
 
 type Server struct {
-	connections []Connection
+	connections []*Connection
 }
 
 type Connection struct {
+	Id     string
 	Name   string
-	stream proto.SendMessage_ServerStreamHelloServer
-	error  chan error
+	Stream proto.SendMessage_ServerStreamHelloServer
+	Error  chan error
 }
 
 // SayHello generates response to a Message request
 func (s *Server) SayHello(ctx context.Context, m *proto.Message) (*proto.Message, error) {
-	fmt.Printf("Received message from %s: %s", m.Name, m.Message)
-	Name := uuid.New().String()
-	return &proto.Message{Name: Name, Message: "bar"}, nil
+	for _, conn := range s.connections {
+		if m.Name != conn.Name {
+			conn.Stream.Send(m)
+		}
+	}
+	return nil, nil
+}
+
+func (s *Server) EstablishConnection(message *proto.Message, stream proto.SendMessage_EstablishConnectionServer) error {
+	newConnection := &Connection{
+		Id:     uuid.New().String(),
+		Name:   message.Name,
+		Stream: stream,
+		Error:  make(chan error),
+	}
+
+	s.connections = append(s.connections, newConnection)
+
+	msg := proto.Message{
+		Name:    "Server",
+		Message: fmt.Sprintf("Welcome to the chat %s! There are %d other clients connected", newConnection.Name, len(s.connections)-1),
+	}
+	stream.Send(&msg)
+
+	return <-newConnection.Error
 }
 
 func (s *Server) ServerStreamHello(msg *proto.Message, stream proto.SendMessage_ServerStreamHelloServer) error {
-	conn := Connection{
-		Name:   msg.Name,
-		stream: stream,
-		error:  make(chan error),
-	}
-
-	s.connections = append(s.connections, conn)
-
-	for i := 0; i < 10; i++ {
-		err := stream.Send(&proto.Message{
-			Name:    uuid.New().String(),
-			Message: fmt.Sprintf("Hellooo client: %s", msg.Name),
-		})
-
-		if err != nil {
-			return err
+	for _, conn := range s.connections {
+		if msg.Name != conn.Name {
+			conn.Stream.Send(msg)
 		}
 	}
 
