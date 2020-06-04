@@ -42,6 +42,7 @@ func ReceiveMessage(stream proto.SendMessage_EstablishConnectionClient) {
 
 func main() {
 	fmt.Println("Attempting to connect to grpc server...")
+
 	conn, err := grpc.Dial(":8000", grpc.WithInsecure())
 	if err != nil {
 		log.Fatalf("Error connecting: %s", err)
@@ -52,6 +53,7 @@ func main() {
 
 	fmt.Println("Successfully connected!")
 	fmt.Printf("Please enter your name: ")
+
 	user := User{}
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
@@ -60,9 +62,7 @@ func main() {
 		break
 	}
 
-	serverStream, err := client.EstablishConnection(context.Background(), &proto.Message{
-		Name: user.Name,
-	})
+	serverStream, err := client.EstablishConnection(context.Background(), &proto.Message{Name: user.Name})
 	if err != nil {
 		log.Fatalf("Error establishing stream connection: %s", err.Error())
 	}
