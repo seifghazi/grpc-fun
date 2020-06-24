@@ -30,7 +30,7 @@ func (s *Server) SayHello(ctx context.Context, m *proto.Message) (*proto.Message
 			conn.Stream.Send(m)
 		}
 	}
-	return nil, nil
+	return &proto.Message{}, nil
 }
 
 func (s *Server) EstablishConnection(message *proto.Message, stream proto.SendMessage_EstablishConnectionServer) error {
@@ -69,7 +69,7 @@ func (s *Server) ClientStreamHello(clientStream proto.SendMessage_ClientStreamHe
 		if err == io.EOF {
 			return clientStream.SendAndClose(&proto.Message{
 				Name:    uuid.New().String(),
-				Message: "Buh Bye m8",
+				Message: "Bye Bye m8",
 			})
 		}
 
